@@ -13,7 +13,6 @@ app = Flask(__name__)
 def handle_message():
     try:
         data = request.get_json()
-
         send_message = run(data)
 
         if send_message:
