@@ -16,7 +16,7 @@ jobs:
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          cd ~/kakaobot_server
+          cd ~/kakao-bot-test
           git pull origin main
           pkill -f gunicorn || true
           sleep 2
