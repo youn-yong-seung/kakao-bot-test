@@ -13,10 +13,7 @@ app = Flask(__name__)
 def handle_message():
     try:
         data = request.get_json()
-        print(data)
-
         send_message = run(data)
-        print(send_message)
 
         if send_message:
             requests.post(f'{os.getenv("iris_url")}/reply', json=send_message)

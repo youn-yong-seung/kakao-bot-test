@@ -1,17 +1,12 @@
 import logging
 import requests
-import json
-import urllib.parse
-import traceback
 from bs4 import BeautifulSoup
+import json
+import traceback
 import re
-import random
-import os
-import asyncio
-from typing import Dict, List, Tuple, Any
 #import main
 
-logger = logging.getLogger
+logger = logging.getLogger(__name__)
 
 def run(data):
     """플레이스봇 처리"""
@@ -38,8 +33,6 @@ def run(data):
     except Exception as e:
         logger.error(traceback.format_exc())
         return False
-    
-
 
 def get_naver_map_keyword(data):
     room = data["room"]
@@ -48,140 +41,158 @@ def get_naver_map_keyword(data):
     keyword = msg.replace("/지도", "").strip()
     if not keyword:
         return f"{sender}님 /지도 뒤에 키워드를 입력해주세요."
-    
-    
-    encode_keyword = urllib.parse.quote(keyword)
-    
-    result = get_naver_map_api(keyword)
-    #save_count_list = get_save_count_list(keyword)
 
-    if "result" not in result:
+    send_msg = f"🗺️{keyword} Top 20😎"
+    
+    results =get_naver_map_api(keyword)
+    if not results:
         return f"{sender}님 {keyword} 지도 검색결과가 없어요ㅠㅠ"
-    elif "place" not in result["result"]:
-        return f"{sender}님 {keyword} 지도 검색결과가 없어요ㅠㅜ"
-    elif not result["result"]["place"]:
-        return f"{sender}님 {keyword} 지도 검색결과가 없어요ㅜㅠ"
-    elif "list" not in result["result"]["place"]:
-        return f"{sender}님 {keyword} 지도 검색결과가 없어요ㅜㅜ"
 
-    items = result["result"]["place"]["list"]
-    if len(items) == 0:
-        send_msg = f"{sender}님 {keyword} 지도 검색결과가 없어요ㅠ.ㅠ"
-
-    elif items[0]["name"] == keyword or len(items) == 1:
-        item = items[0]
-        send_msg = f"{keyword} 지도 검색 결과🤩"
-        send_msg += f"\n✅ {item['name']}"
-        if "bizhourInfo" in item:
-            send_msg += f"\n⏰ {item['bizhourInfo']}"
-        if "address" in item:
-            send_msg += f"\n📍 {item['address']}"
-        if "telDisplay" in item:
-            send_msg += f"\n☎️ {item['telDisplay']}"
-        if "reviewCount" in item:
-            send_msg += f"\n💞리뷰 {item['reviewCount']} 개"
-        if "menuInfo" in item:
-            send_msg += f"\n🍛 {item['menuInfo']}"
-        if "microReview" in item:
-            if item["microReview"]:
-                send_msg += "\n😃".join(item["microReview"])
-        send_msg += f"\nhttps://map.naver.com/v5/search/{encode_keyword}"
-
-    else:
-        send_msg = f"🗺️{keyword} Top 20😎"
-        
-        for i, item in enumerate(items[:20]):
-            rank = item["rank"]
-            name = item["name"]
-            send_msg += f"\n\n{rank}. {name}"
-            
-            if "placeReviewCount" in item:
-                if item["placeReviewCount"]:
-                    send_msg += f"\n💬방문자리뷰 {item['placeReviewCount']:,}"
-
-            if "category" in item:
-                # category가 list면 join해서 문자열로 변환
-                if type(item["category"]) == list:
-                    item["category"] = ", ".join(item["category"])
-                if item["category"]:
-                    send_msg += f"\n🏢{item['category']}"
-            
+    for i, r in enumerate(results):
+        if i >= 20:
+            break
+        for key, item in r.items():
             if i < 5:
-                keyword_list = get_keyword_list(item["id"])
-                if keyword_list:
+                result = get_naver_map_place_id_api(key.split(':')[1])
+                extract_item = extract_restaurant_item(result)
+                send_msg += f"\n\n{i+1}. {item['name']}"
+                if 'visitorReviewCount' in item and item['visitorReviewCount'] is not None:
+                    send_msg += f"\n💬방문자리뷰 {item['visitorReviewCount']}"
+                if 'category' in item and item['category'] is not None:
+                    send_msg += f"\n🏢{item['category']}"
+                if 'keywords' in extract_item and extract_item['keywords']:
                     send_msg += "\n💬대표키워드"
-                    send_msg += f"\n{','.join(keyword_list)}"
-
-            if "address" in item:
-                send_msg += f"\n📍{item['address']}"
-
-            if "telDisplay" in item:
-                if item["telDisplay"]:
-                    send_msg += f"\n☎️{item['telDisplay']}"
-
-            if "businessStatus" in item:
-                if "status" in item["businessStatus"]:
-                    if "detailInfo" in item["businessStatus"]["status"]:
-                        if item["businessStatus"]["status"]["detailInfo"]:
-                            send_msg += f"\n⏰{item['businessStatus']['status']['detailInfo']}"
-            
-            if "menuInfo" in item:
-                if item["menuInfo"]:
-                    send_msg += f"\n📋{item['menuInfo']}"
-            
-            send_msg += f"\nhttps://map.naver.com/p/entry/place/{item['id']}"
-            
-            # if "homePage" in item:
-            #     if item["homePage"]:
-            #         send_msg += f"\n🌐홈페이지\n{item['homePage']}"
-
-            # if "naverBookingUrl" in item:
-            #     if item["naverBookingUrl"]:
-            #         send_msg += f"\n🌐네이버예약\n{item['naverBookingUrl']}"            
-
+                    send_msg += f"\n{','.join(extract_item['keywords'])}"
+                if 'saveCount' in item and item['saveCount'] is not None:
+                    send_msg += f"\n⭐저장수 {item['saveCount']}"
+                if 'fullAddress' in item and item['fullAddress'] is not None:
+                    send_msg += f"\n📍{item['fullAddress']}"
+                elif 'roadAddress' in item and item['roadAddress'] is not None:
+                        send_msg += f"\n📍{item['roadAddress']}"
+                if 'virtualPhone' in item and item['virtualPhone'] is not None:
+                    send_msg += f"\n☎️{item['virtualPhone']}"
+                if 'status' in item:
+                    if 'newBusinessHours' in item and 'status' in item['newBusinessHours'] and 'description' in item['newBusinessHours']:
+                        send_msg += f"\n⏰{item['newBusinessHours']['status']} - {item['newBusinessHours']['description']}"
+                if 'menuInfo' in extract_item and extract_item['menuInfo']:
+                    send_msg += f"\n{'|'.join(extract_item['menuInfo'])}"
+                send_msg += f"\nhttps://map.naver.com/p/entry/place/{key.split(':')[1]}"
+            else:
+                send_msg += f"\n\n{i+1}. {item['name']}"
+                if 'visitorReviewCount' in item and item['visitorReviewCount'] is not None:
+                    send_msg += f"\n💬방문자리뷰 {item['visitorReviewCount']}"
+                if 'category' in item and item['category'] is not None:
+                    send_msg += f"\n🏢{item['category']}"
+                if 'saveCount' in item and item['saveCount'] is not None:
+                    send_msg += f"\n⭐저장수 {item['saveCount']}"
+                if 'fullAddress' in item and item['fullAddress'] is not None:
+                    send_msg += f"\n📍{item['fullAddress']}"
+                elif 'roadAddress' in item and item['roadAddress'] is not None:
+                        send_msg += f"\n📍{item['roadAddress']}"
+                if 'virtualPhone' in item and item['virtualPhone'] is not None:
+                    send_msg += f"\n☎️{item['virtualPhone']}"
+                if 'status' in item:
+                    if 'newBusinessHours' in item and 'status' in item['newBusinessHours'] and 'description' in item['newBusinessHours']:
+                        send_msg += f"\n⏰{item['newBusinessHours']['status']}-{item['newBusinessHours']['description']}"
+                send_msg += f"\nhttps://map.naver.com/p/entry/place/{key.split(':')[1]}"
             if i == 0:
-                send_msg += '\n[열어서 모두 보기] ' + '\u200B'*500
+                send_msg += '\n[열어서 모두 보기]' + '\u200B'*500
+    print(send_msg)
     return send_msg
 
+def extract_restaurant_item(html):
+    item = {}
+
+    """
+    restaurant_name_pattern = r'<span class="GHAhO">([^<]+)</span>'
+    restaurant_name_match = re.search(restaurant_name_pattern, html)
+    if restaurant_name_match:
+        item['name'] = restaurant_name_match.group(1)
     
-def get_keyword_list(place_id):
-    try:
-        headers = {
-            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'accept-language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-            'cache-control': 'no-cache',
-            'pragma': 'no-cache',
-            'priority': 'u=0, i',
-            'referer': 'https://map.naver.com',
-            'sec-ch-ua': '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'sec-fetch-dest': 'iframe',
-            'sec-fetch-mode': 'navigate',
-            'sec-fetch-site': 'same-site',
-            'sec-fetch-user': '?1',
-            'upgrade-insecure-requests': '1',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
-        }
+    category_pattern = r'<span class="lnJFt">([^<]+)</span>'
+    category_match = re.search(category_pattern, html)
+    if category_match:
+        item['category'] = category_match.group(1)
 
-        url = f'https://pcmap.place.naver.com/place/{place_id}/home'
-        response = requests.get(url, headers=headers)
-        response.encoding = 'utf-8'
+    review_pattern = r'방문자 리뷰 ([\\d,]+)'
+    review_match = re.search(review_pattern, html)
+    if review_match:
+        item['placeReviewCount'] = review_match.group(1).replace(',', '')
+    
+    lastorder_pattern = r'<span class="U7pYf"><time[^>]*>([^<]+)</time>'
+    lastorder_match = re.search(lastorder_pattern, html)
+    if lastorder_match:
+        item['bizhourInfo'] = lastorder_match.group(1)
 
-        text = response.text
-        text = text.split('"keywordList":')[1]
-        text = text.split(']')[0]
-        text = text + ']'
+    address_pattern = r'<span class="LDgIH">([^<]+)</span>'
+    address_match = re.search(address_pattern, html)
+    if address_match:
+        item['address'] = address_match.group(1)
 
-        result = json.loads(text)
-        
-        return result
-    except Exception as e:
-        print(e)
-        return None
+    tel_pattern = r'<span class="xlx7Q">([^<]+)</span>'
+    tel_match = re.search(tel_pattern, html)
+    if tel_match:
+        item['telDisplay'] = tel_match.group(1)
 
-"""
-def get_save_count_list(keyword):
+    micro_review_pattern = r'<div class="XtBbS">([^<]+)</div>'
+    micro_review_match = re.search(micro_review_pattern, html)
+    if micro_review_match:
+        item['microReview'] = micro_review_match.group(1)
+    """
+
+    keyword_pattern = r'"keywordList":\[([^\]]+)\]'
+    keyword_match = re.search(keyword_pattern, html)
+    if keyword_match:
+        keyword_string = keyword_match.group(1)
+        keywords = re.findall(r'"([^"]+)"', keyword_string)
+        item['keywords'] = keywords
+    
+    menu_pattern = r'"__typename":"Menu"[^}]*"name":"([^"]+)"[^}]*"price":"([^"]+)"'
+    menu_matches = re.findall(menu_pattern, html)
+    if menu_matches:
+        item['menuInfo'] = []
+        for name, price in menu_matches:
+            item['menuInfo'].append(f'{name} {price}')
+    
+    return item
+
+def get_naver_map_place_id_api(place_id):
+    cookies = {
+        'NACT': '1',
+        'NAC': 'rxILBsQAskiX',
+        'NNB': 'KEFULMRZLFRWQ',
+        '_fwb': '226jCiIm1fuLeKemiic7yED.1751356819771',
+        'SRT30': '1751415660',
+        'page_uid': 'jbftIdqVN8CssR3aM3hssssstMG-192630',
+        'PLACE_LANGUAGE': 'ko',
+        'NACT': '1',
+        'SRT5': '1751420784',
+        'wcs_bt': 'sp_96c07a8dab4ae8:1751421228|sp_197c063aa1d1970:1751418878|sp_90b303cf9230:1751356819',
+        'BUC': 'jn3FIRdcWoehFtmNRSkJqQw1pTggeTTVGt2NhuJW6D8=',
+    }
+
+    headers = {
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'accept-language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+        'priority': 'u=0, i',
+        'referer': 'https://map.naver.com/p/search/%EA%B0%95%EB%82%A8%20%EB%A7%9B%EC%A7%91/place/693144763?c=13.00,0,0,0,dh&placePath=%3Fentry%253Dbmp%2526n_ad_group_type%253D10%2526n_query%253D%2525EA%2525B0%252595%2525EB%252582%2525A8%2525EB%2525A7%25259B%2525EC%2525A7%252591',
+        'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'iframe',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-site': 'same-site',
+        'upgrade-insecure-requests': '1',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+    }
+    
+    url = f'https://pcmap.place.naver.com/restaurant/{place_id}/home'
+    response = requests.get(url, cookies=cookies, headers=headers)
+    response_decode = response.content.decode('utf-8')
+    
+    return response_decode
+
+def get_naver_map_api(keyword):
     headers = {
         'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'accept-language': 'ko,en-US;q=0.9,en;q=0.8,ar;q=0.7',
@@ -204,29 +215,29 @@ def get_save_count_list(keyword):
         'query': keyword,
     }
 
-    response = requests.get('https://pcmap.place.naver.com/restaurant/list', params=params, headers=headers)
+    response = requests.get('https://pcmap.place.naver.com/place/list', params=params, headers=headers)
     response_decode = response.content.decode('utf-8')
+    
     soup = BeautifulSoup(response_decode, 'html.parser')
 
     script_tag = soup.find('script', string=re.compile(r'window\.__APOLLO_STATE__\s*='))
 
     if not script_tag:
-        print("❌ 못 찾음")
         return []
-    
+        
     # 2. 텍스트만 추출
-    text = script_tag.string
+    text = script_tag.get_text()
 
     # 3. JSON 텍스트만 남기기
     raw_json = text.split('window.__APOLLO_STATE__ = ')[1].rstrip(';')
-
-    # 4. split으로 나누기
-    chunks = raw_json.split('"RestaurantListSummary:')
     
     result = []
-    for chunk in chunks[1:]:  # 첫 번째는 쓰레기
-        full_chunk = '"RestaurantListSummary:' + chunk
-        # 중괄호 세는 방식으로 JSON 끝 찾기
+    # 정규표현식으로 '"SomethingSummary:' 패턴을 찾아서 시작 위치 기준으로 쪼개기
+    for match in re.finditer(r'"[^"]+Summary:', raw_json):
+        start_index = match.start()
+        full_chunk = raw_json[start_index:]
+
+        # 중괄호 세서 JSON 객체만 추출
         brace_count = 0
         json_part = ""
         for char in full_chunk:
@@ -237,72 +248,12 @@ def get_save_count_list(keyword):
                 brace_count -= 1
                 if brace_count == 0:
                     break
+
         try:
             parsed = json.loads('{' + json_part + '}')
             result.append(parsed)
-            for i, r in enumerate(result):
-                if i >= 20:
-                    break
-                for item in r.items():
-                    save_count_list = item['saveCount']
-        except:
+        except Exception as e:
+            # 디버깅이 필요하면 여기에 print(e) 추가
             continue
 
-    return save_count_list
-"""
-
-def get_naver_map_api(keyword):
-    cookies = {
-        'NACT': '1',
-        'NNB': 'HVAVPHBWJPRGM',
-        'ASID': 'da9b849000000192dd21a77e00000065',
-        'nstore_session': 'f3tE3l7h3IGTb8raSdi+PzFN',
-        '_tt_enable_cookie': '1',
-        '_ttp': 'vLJLZCmexorHGtGiUsXBjrsTXIs.tt.1',
-        'ba.uuid': '09b1a6c4-4268-426d-abe9-02b3d238211f',
-        '_ga_J5CZVNJNQP': 'GS1.1.1735519248.1.0.1735519248.0.0.0',
-        '_ga_451MFZ9CFM': 'GS1.1.1736297197.1.0.1736297199.0.0.0',
-        'BNB_FINANCE_HOME_TOOLTIP_MYASSET': 'true',
-        '_ga_6Z6DP60WFK': 'GS1.2.1741078123.1.0.1741078123.60.0.0',
-        '_ga': 'GA1.1.1054701045.1735519249',
-        '_ga_RCM29786SD': 'GS1.1.1742872121.1.0.1742872121.0.0.0',
-        'nstore_pagesession': 'juUmCdqWadk3EssMNKG-087773',
-        'NAC': 'VBXyBgwyb4nT',
-        'NDV_SHARE': 'j23OxEg7JY62FvLO68P3fPxcV1oqlfRqJRpA10qVqJ8TkGHnW90CivnnMuMiqwzGVJOuKNEvjogE6C6vMk0uRC8jAx3MqK1g4Ha5Ar/vWMEH',
-        'page_uid': 'jbK3LwqVOZCssa00ez8ssssssmK-395801',
-        'JSESSIONID': '563C3ACEC0E5B78B88210E37DD2DE847.jvm1',
-        'SRT30': '1751409994',
-        'SRT5': '1751409994',
-        'BUC': 'BJD-SBubSG6ee9PfuYVXaNv5rwzkptctNQBDQr0t0XQ=',
-        'page_uid': '14665240-dca5-431f-b0f4-15d731e44584',
-    }
-
-    headers = {
-        'accept': 'application/json, text/plain, */*',
-        'accept-language': 'ko-KR,ko;q=0.8,en-US;q=0.6,en;q=0.4',
-        'cache-control': 'no-cache',
-        'expires': 'Sat, 01 Jan 2000 00:00:00 GMT',
-        'pragma': 'no-cache',
-        'priority': 'u=1, i',
-        'referer': 'https://map.naver.com/p/search/%EA%B0%95%EB%82%A8%20%EB%A7%9B%EC%A7%91?c=15.00,0,0,0,dh',
-        'sec-ch-ua': '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-origin',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
-        # 'cookie': 'NACT=1; NNB=HVAVPHBWJPRGM; ASID=da9b849000000192dd21a77e00000065; nstore_session=f3tE3l7h3IGTb8raSdi+PzFN; _tt_enable_cookie=1; _ttp=vLJLZCmexorHGtGiUsXBjrsTXIs.tt.1; ba.uuid=09b1a6c4-4268-426d-abe9-02b3d238211f; _ga_J5CZVNJNQP=GS1.1.1735519248.1.0.1735519248.0.0.0; _ga_451MFZ9CFM=GS1.1.1736297197.1.0.1736297199.0.0.0; BNB_FINANCE_HOME_TOOLTIP_MYASSET=true; _ga_6Z6DP60WFK=GS1.2.1741078123.1.0.1741078123.60.0.0; _ga=GA1.1.1054701045.1735519249; _ga_RCM29786SD=GS1.1.1742872121.1.0.1742872121.0.0.0; nstore_pagesession=juUmCdqWadk3EssMNKG-087773; NAC=VBXyBgwyb4nT; NDV_SHARE=j23OxEg7JY62FvLO68P3fPxcV1oqlfRqJRpA10qVqJ8TkGHnW90CivnnMuMiqwzGVJOuKNEvjogE6C6vMk0uRC8jAx3MqK1g4Ha5Ar/vWMEH; page_uid=jbK3LwqVOZCssa00ez8ssssssmK-395801; JSESSIONID=563C3ACEC0E5B78B88210E37DD2DE847.jvm1; SRT30=1751409994; SRT5=1751409994; BUC=BJD-SBubSG6ee9PfuYVXaNv5rwzkptctNQBDQr0t0XQ=; page_uid=14665240-dca5-431f-b0f4-15d731e44584',
-    }
-
-    params = {
-        'query': '강남 맛집',
-        'type': 'all',
-        'token': '1UTZF_bRRocNpJZ_0fflvcl5zRpppIDCw32z6wlxHV0=',
-        'searchCoord': '127.15171494606346;37.27246100000093',
-        'boundary': '',
-    }
-
-    response = requests.get('https://map.naver.com/p/api/search/allSearch', params=params, headers=headers)
-    
-    return response.json()
+    return result
