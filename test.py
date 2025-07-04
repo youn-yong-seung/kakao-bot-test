@@ -47,7 +47,7 @@ def get_naver_map_keyword(data):
     msg = data["msg"]
     keyword = msg.replace("/지도", "").strip()
     if not keyword:
-        return f"{sender}님 /지도 뒤에 키워드를 입력해주세요."
+        return f"{sender}님 /지도 뒤에 키워드를 입력해주세요.!!!!!!!!!!!!!!!!!!!!!!!"
     
     
     encode_keyword = urllib.parse.quote(keyword)
@@ -56,7 +56,7 @@ def get_naver_map_keyword(data):
     #save_count_list = get_save_count_list(keyword)
 
     if "result" not in result:
-        return f"{sender}님 {keyword} 지도 검색결과가 없어요ㅠㅠ"
+        return f"{sender}님 {keyword} 지도 검색결과가 없어요ㅠㅠ!!!!!!!!!!!!!!!!!!!!!!!"
     elif "place" not in result["result"]:
         return f"{sender}님 {keyword} 지도 검색결과가 없어요ㅠㅜ"
     elif not result["result"]["place"]:
