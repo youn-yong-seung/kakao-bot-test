@@ -20,5 +20,5 @@ jobs:
           git pull origin main
           pkill -f gunicorn || true
           sleep 2
-          nohup gunicorn -w 1 -b 0.0.0.0:5000 app:app
+          gunicorn -w 1 -b 0.0.0.0:5000 app:app
           echo "서버 재시작 완료."
