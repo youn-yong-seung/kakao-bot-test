@@ -1,0 +1,24 @@
+name: Deploy to Kakao Bot Server
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.KEY }}
+        script: |
+          cd ~/kakaobot_server
+          git pull origin main
+          pkill -f gunicorn || true
+          sleep 2
+          nohup gunicorn -w 1 -b 0.0.0.0:5000 app:app
+          echo "서버 재시작 완료."
