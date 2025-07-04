@@ -14,11 +14,9 @@ jobs:
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.KEY }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          cd ~/kakaobot_server
+          cd ~/kakao-bot-test
           git pull origin main
-          pkill -f gunicorn || true
-          sleep 2
-          nohup gunicorn -w 1 -b 0.0.0.0:5000 app:app
-          echo "서버 재시작 완료."
+          sudo systemctl restart gunicorn
+          echo "✅ 서버 재시작 완료!"
