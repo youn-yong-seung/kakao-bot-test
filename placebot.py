@@ -4,14 +4,14 @@ from bs4 import BeautifulSoup
 import json
 import traceback
 import re
-#import main
+import main
 
 logger = logging.getLogger(__name__)
 
 def run(data):
     """플레이스봇 처리"""
     try:
-        allow_chat_list = ["18455306023804070"]
+        allow_chat_list = ["18444706541881108", "18453992993191424"]
         chat_id = data["json"]["chat_id"]
         if chat_id not in allow_chat_list:
             return None
@@ -22,12 +22,12 @@ def run(data):
             send_msg = get_naver_map_keyword(data)
             if send_msg:
                 result = {
-                    "room": chat_id,
+                    "chat_id": chat_id,
                     "type": "text",
                     "data": send_msg
                 }
-                #main.send_message(result)
-                return result
+                main.send_message(result)
+                return True
         
         return None
     except Exception as e:
@@ -257,3 +257,13 @@ def get_naver_map_api(keyword):
             continue
 
     return result
+
+
+# data = {
+#     "room": "18444706541881108",
+#     "sender": "윤자동",
+#     "msg": "/지도 술집"
+# }
+
+
+# get_naver_map_keyword(data)
