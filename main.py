@@ -7,8 +7,10 @@ from datetime import datetime
 import requests
 import logging
 from logging.handlers import TimedRotatingFileHandler
+from schedule import background_schedule_cron, background_schedule_interval
 import traceback
 import placebot
+import weatherbot
 
 # 환경변수 로드
 load_dotenv()
@@ -413,7 +415,13 @@ def receive():
             "message": str(e)
         }), 500
 
-
+# 스케쥴링 테스트
+data = {
+    "room": "18453992993191424",
+    "sender": "윤봇",
+    "msg": "스케쥴링 테스트 메시지"
+}
+background_schedule_interval(lambda: weatherbot.run(data), minutes=30, job_id='get_weather')
 
 if __name__ == '__main__':
     logger.info("Flask 애플리케이션 시작")
