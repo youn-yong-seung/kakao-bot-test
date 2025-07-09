@@ -8,7 +8,7 @@ import main
 
 logger = logging.getLogger(__name__)
 
-def run(data):
+def placebot_run(data):
     """플레이스봇 처리"""
     try:
         allow_chat_list = ["18444706541881108", "18453992993191424"]
