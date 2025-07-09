@@ -421,7 +421,7 @@ data = {
     "sender": "윤봇",
     "msg": "스케쥴링 테스트 메시지"
 }
-background_schedule_interval(lambda: weatherbot.run(data), minutes=30, job_id='get_weather')
+#background_schedule_interval(lambda: weatherbot.run(data), minutes=30, job_id='get_weather')
 
 if __name__ == '__main__':
     logger.info("Flask 애플리케이션 시작")
