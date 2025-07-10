@@ -1,6 +1,10 @@
 from google import genai
 from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
+from dotenv import load_dotenv
 import os
+
+# 환경변수 로드
+load_dotenv()
 
 def gemini_free(system_instruction:str, prompt: str):
     client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))

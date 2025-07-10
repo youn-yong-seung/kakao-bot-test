@@ -419,7 +419,7 @@ def receive():
 
 # 날씨 테스트 메시지"
 weatherbot_result = weatherbot_run("18453992993191424")
-background_schedule_cron(lambda: send_message(weatherbot_result), hour=7, minute=0, job_id='weather_18453992993191424')
+background_schedule_cron(lambda: send_message(weatherbot_result), hour=9, minute=30, job_id='weather_18453992993191424')
 
 if __name__ == '__main__':
     logger.info("Flask 애플리케이션 시작")
