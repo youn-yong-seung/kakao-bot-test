@@ -46,10 +46,11 @@ def get_whether_summary():
     answer = gemini_free(system, question)
     answer = answer.replace('.','.\n')
 
+    invisible_char = '\u200C' * 500
     result = f"""🌞AI 전국 날씨 요약🌞
 ({dt} 기준)
 
-{answer}👇 자세히 보기 👇{'\u200C'*500}
+{answer}👇 자세히 보기 👇{invisible_char}
 [기상청 원문]
 {raw_msg}
 
