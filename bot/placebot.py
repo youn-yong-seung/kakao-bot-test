@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 import json
 import traceback
 import re
-import main
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +25,12 @@ def placebot_run(data):
                     "type": "text",
                     "data": send_msg
                 }
-                main.send_message(result)
-                return True
+                return result
         
         return None
     except Exception as e:
         logger.error(traceback.format_exc())
-        return False
+        return None
 
 def get_naver_map_keyword(data):
     room = data["room"]

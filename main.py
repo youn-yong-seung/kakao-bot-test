@@ -385,7 +385,9 @@ def receive():
         success, message = save_message(data)
 
         # 플레이스봇 처리
-        placebot_run(data)
+        placebot_result = placebot_run(data)
+        if placebot_result:
+            send_message(placebot_result)
 
         # 수신 메시지 웹훅 전송
         send_webhook(data)
@@ -416,7 +418,8 @@ def receive():
         }), 500
 
 # 날씨 테스트 메시지"
-background_schedule_cron(lambda: weatherbot_run.weatherbot_run("18453992993191424"), hour=7, minute=0, job_id='weather_18453992993191424')
+weatherbot_result = weatherbot_run("18453992993191424")
+background_schedule_cron(lambda: send_message(weatherbot_result), hour=7, minute=0, job_id='weather_18453992993191424')
 
 if __name__ == '__main__':
     logger.info("Flask 애플리케이션 시작")

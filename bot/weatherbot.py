@@ -3,7 +3,6 @@ import requests
 from bs4 import BeautifulSoup
 from ai.gemini import gemini_free
 import traceback
-import main
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +16,11 @@ def weatherbot_run(room):
             "type": "text",
             "data": weather_msg
         }
-        main.send_message(result)
 
-        return True
+        return result
     except Exception as e:
         logger.error(traceback.format_exc())
-        return False
+        return None
 
 def get_whether_summary():
     url = f"https://www.weather.go.kr/w/weather/forecast/short-term.do"
