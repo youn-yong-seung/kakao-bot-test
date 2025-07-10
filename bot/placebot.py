@@ -4,11 +4,10 @@ from bs4 import BeautifulSoup
 import json
 import traceback
 import re
-import main
 
 logger = logging.getLogger(__name__)
 
-def run(data):
+def placebot_run(data):
     """플레이스봇 처리"""
     try:
         allow_chat_list = ["18444706541881108", "18453992993191424"]
@@ -26,13 +25,12 @@ def run(data):
                     "type": "text",
                     "data": send_msg
                 }
-                main.send_message(result)
-                return True
+                return result
         
         return None
     except Exception as e:
         logger.error(traceback.format_exc())
-        return False
+        return None
 
 def get_naver_map_keyword(data):
     room = data["room"]
